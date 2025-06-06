@@ -28,29 +28,45 @@
       </section>
 
       <!-- Events Table -->
-      <section class="bg-white rounded-xl shadow overflow-x-auto border border-green-100">
-        <h2 class="text-lg font-semibold text-green-800 p-4 border-b border-green-100">Recent Events</h2>
-        <table class="min-w-full text-sm">
-          <thead class="bg-green-50 text-green-800 text-xs uppercase">
-            <tr>
-              <th class="px-4 py-2 text-left">From</th>
-              <th class="px-4 py-2 text-left">To</th>
-              <th class="px-4 py-2 text-left">Value</th>
-              <th class="px-4 py-2 text-left">Block</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for event in events %}
-              <tr class="border-b border-green-100 hover:bg-green-50">
-                <td class="px-4 py-2 font-mono text-xs text-gray-700">{{ event.args.from }}</td>
-                <td class="px-4 py-2 font-mono text-xs text-gray-700">{{ event.args.to }}</td>
-                <td class="px-4 py-2 text-gray-800">{{ event.args.value }}</td>
-                <td class="px-4 py-2 text-gray-800">{{ event.blockNumber }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </section>
+<section class="bg-white rounded-xl shadow overflow-x-auto border border-green-100">
+  <h2 class="text-lg font-semibold text-green-800 p-4 border-b border-green-100">Recent Events</h2>
+  <table class="min-w-full text-sm">
+    <thead class="bg-green-50 text-green-800 text-xs uppercase">
+      <tr>
+        <th class="px-4 py-2 text-left">From</th>
+        <th class="px-4 py-2 text-left">To</th>
+        <th class="px-4 py-2 text-left">Value</th>
+        <th class="px-4 py-2 text-left">Block</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for event in events %}
+        <tr class="border-b border-green-100 hover:bg-green-50">
+          <td class="px-4 py-2 font-mono text-xs text-gray-700">{{ event.args.from }}</td>
+          <td class="px-4 py-2 font-mono text-xs text-gray-700">{{ event.args.to }}</td>
+          <td class="px-4 py-2 text-gray-800">{{ event.args.value }}</td>
+          <td class="px-4 py-2 text-gray-800">{{ event.blockNumber }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- ✅ Pagination controls go here -->
+  <div class="flex justify-between items-center px-4 py-3 bg-green-50 border-t border-green-100">
+    <div class="text-sm text-green-800">
+      Page {{ page }} of {{ total_pages }}
+    </div>
+    <div class="flex space-x-2">
+      {% if page > 1 %}
+        <a href="/?page={{ page - 1 }}" class="px-3 py-1 bg-green-200 text-green-900 rounded hover:bg-green-300">Previous</a>
+      {% endif %}
+      {% if page < total_pages %}
+        <a href="/?page={{ page + 1 }}" class="px-3 py-1 bg-green-200 text-green-900 rounded hover:bg-green-300">Next</a>
+      {% endif %}
+    </div>
+  </div>
+
+</section>
     </main>
 
     <!-- Footer -->
@@ -58,6 +74,13 @@
       Tomintech · USDC Smart Contract Monitoring Portfolio Project
     </footer>
   </div>
+
+    <!-- Auto-refresh every 15 seconds -->
+    <script>
+      setTimeout(() => {
+        window.location.reload();
+      }, 90000);
+    </script>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
