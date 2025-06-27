@@ -1,87 +1,324 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>USDC Transaction Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body {
-      background-color: #f4fef8; /* pastel green base */
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Contract Monitoring Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Import Chart.js for analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        .glassmorphism { background: rgba(31, 41, 55, 0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(55, 65, 81, 0.3); }
+        .neon-blue-text { color: #60a5fa; } .neon-green-text { color: #34d399; } .neon-purple-text { color: #a78bfa; } .neon-red-text { color: #f87171; } .neon-yellow-text { color: #facc15; }
+        select.custom-select { -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%239ca3af'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd' /%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1.25em; padding-right: 2.5rem; }
+    </style>
 </head>
-<body class="text-gray-800 font-sans">
-  <div class="min-h-screen flex flex-col">
-    <!-- Header -->
-    <header class="bg-green-100 p-6 shadow-sm">
-      <h1 class="text-3xl font-bold text-green-900">Smart Contract Events</h1>
-      <p class="text-sm text-green-700">Live Transfer Event Monitor</p>
-    </header>
+<body class="bg-gray-900 text-gray-100">
 
-    <!-- Main -->
-    <main class="flex-1 p-6 space-y-6">
-      <!-- Chart Section -->
-      <section class="bg-green-50 rounded-xl p-4 shadow">
-        <h2 class="text-lg font-semibold text-green-900 mb-2">Transfer Volume</h2>
-        <canvas id="volumeChart" class="w-full h-64"></canvas>
-      </section>
+    <div class="flex flex-col min-h-screen">
+        <header class="glassmorphism shadow-lg sticky top-0 z-50 border-b border-gray-700/50">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-20">
+                    <div class="text-2xl font-bold"><span class="neon-blue-text">Contract</span><span class="text-gray-300">Monitor</span></div>
+                    <div class="flex items-center space-x-4 md:space-x-6">
+                        <div class="text-center p-2 rounded-lg"><p class="text-xs text-gray-400">Transactions (24h)</p><p id="total-transactions" class="text-lg font-semibold neon-green-text">...</p></div>
+                        <div class="text-center p-2 rounded-lg"><p id="volume-label" class="text-xs text-gray-400">Volume (24h)</p><p id="usdc-volume" class="text-lg font-semibold neon-green-text">...</p></div>
+                        <div class="text-center p-2 rounded-lg hidden sm:block"><p class="text-xs text-gray-400">Latest Block</p><p id="latest-block" class="text-lg font-semibold text-gray-200">...</p></div>
+                        <div>
+                            <select id="token-dropdown" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 custom-select hover:bg-gray-600 transition-colors">
+                                <option selected value="USDC">Token: USDC</option>
+                                <option value="ETH">Token: ETH</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
 
-      <!-- Events Table -->
-      <section class="bg-white rounded-xl shadow overflow-x-auto border border-green-100">
-        <h2 class="text-lg font-semibold text-green-800 p-4 border-b border-green-100">Recent Events</h2>
-        <table class="min-w-full text-sm">
-          <thead class="bg-green-50 text-green-800 text-xs uppercase">
-            <tr>
-              <th class="px-4 py-2 text-left">From</th>
-              <th class="px-4 py-2 text-left">To</th>
-              <th class="px-4 py-2 text-left">Value</th>
-              <th class="px-4 py-2 text-left">Block</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for event in events %}
-              <tr class="border-b border-green-100 hover:bg-green-50">
-                <td class="px-4 py-2 font-mono text-xs text-gray-700">{{ event.args.from }}</td>
-                <td class="px-4 py-2 font-mono text-xs text-gray-700">{{ event.args.to }}</td>
-                <td class="px-4 py-2 text-gray-800">{{ event.args.value }}</td>
-                <td class="px-4 py-2 text-gray-800">{{ event.blockNumber }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </section>
-    </main>
+        <div class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-col lg:flex-row gap-6">
+                <!-- Advanced Filters Panel (Left Sidebar) -->
+                <aside class="w-full lg:w-72 xl:w-80 space-y-6 flex-shrink-0">
+                    <div class="glassmorphism p-6 rounded-xl shadow-xl h-full">
+                        <h2 class="text-xl font-semibold mb-4 neon-blue-text border-b border-gray-700 pb-3">Advanced Filters</h2>
+                        <div class="space-y-5">
+                            <div>
+                                <label for="wallet-from" class="block text-sm font-medium text-gray-300 mb-1">From Address</label>
+                                <input type="text" id="wallet-from" placeholder="0x..." class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-sm transition-colors focus:bg-gray-600">
+                            </div>
+                            <div>
+                                <label for="wallet-to" class="block text-sm font-medium text-gray-300 mb-1">To Address</label>
+                                <input type="text" id="wallet-to" placeholder="0x..." class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-sm transition-colors focus:bg-gray-600">
+                            </div>
+                            <button id="apply-filters-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition duration-150 ease-in-out shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                                Apply Filters
+                            </button>
+                        </div>
+                    </div>
+                </aside>
 
-    <!-- Footer -->
-    <footer class="bg-green-100 text-center text-xs text-green-700 py-4 border-t border-green-200">
-      Tomintech · USDC Smart Contract Monitoring Portfolio Project
-    </footer>
-  </div>
+                <!-- Center Panel (Table & Analytics) -->
+                <!-- UI FIX: Added `min-w-0` to prevent the wide table from stretching the page layout -->
+                <main class="flex-grow space-y-6 min-w-0">
+                    <div class="glassmorphism p-4 sm:p-6 rounded-xl shadow-xl">
+                        <h2 class="text-xl font-semibold mb-4 neon-blue-text border-b border-gray-700 pb-3">Transfer Events</h2>
+                         <div class="flex items-center justify-center py-10" id="table-loading-state"><svg class="animate-spin h-8 w-8 neon-blue-text" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p class="ml-3 text-gray-300">Loading data...</p></div>
+                        <div class="overflow-x-auto hidden" id="events-table-container">
+                            <table class="min-w-full divide-y divide-gray-700">
+                                <thead class="bg-gray-700/30"><tr><th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Timestamp</th><th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">From</th><th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">To</th><th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Value</th><th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider hidden md:table-cell">Block</th><th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider hidden lg:table-cell">Tx Hash</th></tr></thead>
+                                <tbody id="transfer-events-tbody" class="bg-gray-800/80 divide-y divide-gray-700"></tbody>
+                            </table>
+                        </div>
+                        <nav class="mt-6 flex items-center justify-between border-t border-gray-700 px-2 py-3 hidden" id="pagination-controls" aria-label="Pagination">
+                            <div class="hidden sm:block"><p class="text-sm text-gray-400" id="pagination-details"></p></div>
+                            <div class="flex-1 flex justify-between sm:justify-end space-x-2">
+                                <button id="prev-page-btn" class="relative inline-flex items-center px-3 py-2 rounded-md border border-gray-600 bg-gray-700 text-sm font-medium text-gray-300 hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+                                <button id="next-page-btn" class="relative inline-flex items-center px-3 py-2 rounded-md border border-gray-600 bg-gray-700 text-sm font-medium text-gray-300 hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+                            </div>
+                        </nav>
+                    </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-  const ctx = document.getElementById('volumeChart').getContext('2d');
-  const chart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: {{ labels | tojson }},
-      datasets: [{
-        label: 'USDC Transferred per Block',
-        data: {{ values | tojson }},
-        backgroundColor: '#a8e6cf', // pastel green
-        borderRadius: 6,
-      }]
-    },
-    options: {
-      plugins: {
-        legend: { display: false }
-      },
-      scales: {
-        y: { beginAtZero: true }
-      }
-    }
-  });
-</script>
+                    <div class="glassmorphism p-4 sm:p-6 rounded-xl shadow-xl">
+                        <h2 class="text-xl font-semibold mb-4 neon-blue-text border-b border-gray-700 pb-3">Analytics</h2>
+                        <div class="grid grid-cols-1">
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-200 mb-3">Transfer Volume per Block</h3>
+                                <div id="volume-chart-container" class="bg-gray-700/50 p-4 rounded-lg h-72">
+                                    <canvas id="volumeChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                <!-- Alerts & AI Insights Panel (Right Sidebar) -->
+                 <aside class="w-full lg:w-72 xl:w-80 space-y-6 flex-shrink-0">
+                    <div class="glassmorphism p-6 rounded-xl shadow-xl h-full">
+                        <h2 class="text-xl font-semibold mb-4 neon-blue-text border-b border-gray-700 pb-3">AI Insights</h2>
+                        <div class="space-y-5">
+                            <div>
+                                <label for="ask-ai-input" class="block text-sm font-medium text-gray-300 mb-1">Ask a question</label>
+                                <div class="relative flex">
+                                    <input type="text" id="ask-ai-input" placeholder="e.g., largest transfers" class="w-full bg-gray-700 border border-gray-600 rounded-l-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-sm transition-colors focus:bg-gray-600">
+                                    <button type="button" id="ask-ai-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2.5 rounded-r-lg transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M3.105 3.105a1.5 1.5 0 012.25-.096l8.65 5.405a.75.75 0 010 1.172l-8.65 5.405a1.5 1.5 0 01-2.154-1.975L4.654 10 3.201 5.071a1.5 1.5 0 01-.096-1.966z" /></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="ai-response-container" class="bg-gray-700/50 p-4 rounded-lg space-y-3 text-sm text-gray-300 min-h-[10rem]">
+                                <h3 id="ai-response-title" class="font-semibold text-gray-100"></h3>
+                                <div id="ai-response-content">
+                                    <p class="text-gray-400">Ask a question like "show latest transfers" or "find whale wallets" to get an AI-powered summary.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+
+        <footer class="glassmorphism border-t border-gray-700/50 mt-auto">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-5 text-gray-400 text-sm">
+                <div class="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
+                    <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="hover:neon-blue-text transition-colors duration-150 flex items-center">
+                        <svg class="w-5 h-5 mr-1.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.342-3.369-1.342-.454-1.157-1.11-1.465-1.11-1.465-.908-.62.069-.608.069-.608 1.003.074 1.532 1.029 1.532 1.029.891 1.529 2.341 1.089 2.91.833.091-.647.349-1.086.635-1.337-2.22-.252-4.555-1.112-4.555-4.943 0-1.091.39-1.984 1.029-2.682-.103-.253-.446-1.27.098-2.645 0 0 .84-.269 2.75 1.025A9.548 9.548 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.748-1.025 2.748-1.025.546 1.375.201 2.392.098 2.645.64.698 1.028 1.591 1.028 2.682 0 3.841-2.337 4.687-4.565 4.935.358.307.679.917.679 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.577.688.481A10.007 10.007 0 0022 11.999C22 6.477 17.522 2 12 2z" clip-rule="evenodd"></path></svg>
+                        GitHub
+                    </a>
+                    <span class="text-center">Built by YourName/AI</span>
+                    <div class="flex items-center">System Status: <span id="system-status-dot" class="h-2.5 w-2.5 bg-green-500 rounded-full ml-2 inline-block" title="All systems operational"></span></div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const API_BASE_URL = 'http://127.0.0.1:5000/api';
+            const REFRESH_INTERVAL = 20000;
+
+            // --- Element References ---
+            const totalTransactionsEl = document.getElementById('total-transactions');
+            const usdcVolumeEl = document.getElementById('usdc-volume');
+            const volumeLabelEl = document.getElementById('volume-label');
+            const latestBlockEl = document.getElementById('latest-block');
+            const tokenDropdown = document.getElementById('token-dropdown');
+            const tableBody = document.getElementById('transfer-events-tbody');
+            const tableLoadingState = document.getElementById('table-loading-state');
+            const tableContainer = document.getElementById('events-table-container');
+            const paginationDetails = document.getElementById('pagination-details');
+            const paginationControls = document.getElementById('pagination-controls');
+            const prevPageBtn = document.getElementById('prev-page-btn');
+            const nextPageBtn = document.getElementById('next-page-btn');
+            const fromAddressInput = document.getElementById('wallet-from');
+            const toAddressInput = document.getElementById('wallet-to');
+            const applyFiltersBtn = document.getElementById('apply-filters-btn');
+            const askAiInput = document.getElementById('ask-ai-input');
+            const askAiBtn = document.getElementById('ask-ai-btn');
+            const aiResponseTitle = document.getElementById('ai-response-title');
+            const aiResponseContent = document.getElementById('ai-response-content');
+            
+            let currentPage = 1;
+            let currentFilters = {};
+            let volumeChart = null;
+
+            // --- Formatting Helpers ---
+            function formatNumber(n, style='d'){return typeof n!=='number'?'N/A':style==='c'?'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toLocaleString('en-US')}
+            function truncateAddress(a){return!a||a.length<12?a:`${a.substring(0,6)}...${a.substring(a.length-4)}`}
+
+            // --- API Fetching Functions ---
+            async function fetchAndUpdateStats() {
+                const selectedToken = tokenDropdown.value;
+                volumeLabelEl.textContent = `${selectedToken} Volume (24h)`;
+                try {
+                    const response = await fetch(`${API_BASE_URL}/stats?token=${selectedToken}`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    totalTransactionsEl.textContent = formatNumber(data.total_transactions_24h);
+                    usdcVolumeEl.textContent = formatNumber(data.total_volume_24h, 'currency');
+                    latestBlockEl.textContent = formatNumber(data.latest_block);
+                } catch (error) { console.error("Failed to fetch stats:", error); }
+            }
+
+            async function fetchAndRenderEvents(page = 1) {
+                tableLoadingState.classList.remove('hidden');
+                tableContainer.classList.add('hidden');
+                paginationControls.classList.add('hidden');
+                
+                const params = new URLSearchParams({ page: page, limit: 10, ...currentFilters });
+                try {
+                    const response = await fetch(`${API_BASE_URL}/events?${params.toString()}`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    
+                    tableBody.innerHTML = '';
+                    if (data.events.length === 0) {
+                        tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-400">No events found.</td></tr>`;
+                    } else {
+                        data.events.forEach(event => {
+                            const row = document.createElement('tr');
+                            row.className = 'hover:bg-gray-700/70 transition-colors duration-150';
+                            if (event.value > 100000) row.classList.add('bg-yellow-600/10', 'border-l-4', 'border-yellow-400');
+                            row.innerHTML = `
+                                <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-300">${event.timestamp}</td>
+                                <td class="px-3 py-3 whitespace-nowrap text-sm neon-blue-text truncate hover:underline cursor-pointer" title="${event.from_address}">${truncateAddress(event.from_address)}</td>
+                                <td class="px-3 py-3 whitespace-nowrap text-sm neon-blue-text truncate hover:underline cursor-pointer" title="${event.to_address}">${truncateAddress(event.to_address)}</td>
+                                <td class="px-3 py-3 whitespace-nowrap text-sm ${event.value > 100000 ? 'neon-red-text font-bold' : 'neon-green-text font-semibold'}">${formatNumber(event.value)} ${event.tokenSymbol}</td>
+                                <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-400 hidden md:table-cell">${event.blockNumber}</td>
+                                <td class="px-3 py-3 whitespace-nowrap text-sm neon-purple-text truncate hover:underline cursor-pointer" title="${event.tx_hash}">${truncateAddress(event.tx_hash)}</td>
+                            `;
+                            tableBody.appendChild(row);
+                        });
+                    }
+
+                    const { current_page, total_items, per_page } = data.pagination;
+                    currentPage = current_page;
+                    paginationDetails.textContent = `Showing ${Math.min(1 + (current_page - 1) * per_page, total_items)} to ${Math.min(current_page * per_page, total_items)} of ${formatNumber(total_items)}`;
+                    prevPageBtn.disabled = !data.pagination.has_prev;
+                    nextPageBtn.disabled = !data.pagination.has_next;
+                    
+                    tableLoadingState.classList.add('hidden');
+                    tableContainer.classList.remove('hidden');
+                    if (total_items > 0) paginationControls.classList.remove('hidden');
+
+                } catch (error) {
+                    console.error("Failed to fetch events:", error);
+                    tableLoadingState.innerHTML = '<p class="text-red-400">Error loading events.</p>';
+                }
+            }
+
+            async function fetchAndRenderChart() {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/analytics/volume-by-block`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const chartData = await response.json();
+                    
+                    const ctx = document.getElementById('volumeChart').getContext('2d');
+                    if (volumeChart) volumeChart.destroy();
+                    
+                    volumeChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: { labels: chartData.labels, datasets: [{ label: 'Total Volume', data: chartData.data, backgroundColor: 'rgba(59, 130, 246, 0.5)', borderColor: 'rgba(59, 130, 246, 1)', borderWidth: 1, borderRadius: 4 }] },
+                        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(156, 163, 175, 0.2)' } }, x: { ticks: { color: '#9ca3af' }, grid: { display: false } } }, plugins: { legend: { display: false } } }
+                    });
+                } catch (error) { console.error('Failed to render chart:', error); }
+            }
+
+            async function handleAiQuery() {
+                const query = askAiInput.value.trim();
+                if (!query) return;
+
+                aiResponseTitle.textContent = "Thinking...";
+                aiResponseContent.innerHTML = '<div class="flex items-center justify-center p-4"><svg class="animate-spin h-5 w-5 neon-blue-text" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>';
+                
+                try {
+                    const response = await fetch(`${API_BASE_URL}/ai-query`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query: query })
+                    });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    
+                    aiResponseTitle.textContent = data.title;
+                    aiResponseContent.innerHTML = '';
+
+                    if (data.results && data.results.length > 0) {
+                        data.results.forEach(item => {
+                            let contentHtml = '';
+                            if (item.error) {
+                                contentHtml = `<p class="text-yellow-400">${item.error}</p>`;
+                            } else if (item.tx_count) {
+                                contentHtml = `<div class="p-2 bg-gray-900/50 rounded-md mb-2"><strong>Address:</strong> <span class="neon-blue-text">${truncateAddress(item.to_address)}</span><br><strong>Received:</strong> ${item.tx_count} times</div>`;
+                            } else {
+                                contentHtml = `<div class="p-2 bg-gray-900/50 rounded-md mb-2"><strong>From:</strong> ${truncateAddress(item.from_address)}<br><strong>To:</strong> ${truncateAddress(item.to_address)}<br><strong>Value:</strong> <span class="font-bold neon-green-text">${formatNumber(item.value)} ${item.tokenSymbol}</span></div>`;
+                            }
+                            aiResponseContent.innerHTML += contentHtml;
+                        });
+                    } else {
+                        aiResponseContent.innerHTML = '<p class="text-gray-400">No results found for your query.</p>';
+                    }
+                } catch (error) {
+                    console.error('AI Query failed:', error);
+                    aiResponseTitle.textContent = "Error";
+                    aiResponseContent.innerHTML = '<p class="text-red-400">Could not process the request.</p>';
+                }
+            }
+
+            // --- Event Listeners ---
+            tokenDropdown.addEventListener('change', fetchAndUpdateStats);
+            // UI FIX: Added event.preventDefault() to pagination handlers to stop the page from jumping.
+            prevPageBtn.addEventListener('click', (e) => { e.preventDefault(); if (currentPage > 1) fetchAndRenderEvents(currentPage - 1); });
+            nextPageBtn.addEventListener('click', (e) => { e.preventDefault(); fetchAndRenderEvents(currentPage + 1); });
+            applyFiltersBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                currentFilters = {
+                    from_address: fromAddressInput.value.trim() || undefined,
+                    to_address: toAddressInput.value.trim() || undefined
+                };
+                fetchAndRenderEvents(1);
+            });
+            askAiBtn.addEventListener('click', handleAiQuery);
+            askAiInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleAiQuery(); });
+            
+            // --- Initial Load ---
+            function initialLoad() {
+                fetchAndUpdateStats(); 
+                fetchAndRenderEvents(1); 
+                fetchAndRenderChart();
+            }
+            
+            initialLoad();
+            setInterval(() => {
+                fetchAndUpdateStats();
+                fetchAndRenderChart(); 
+            }, REFRESH_INTERVAL);
+        });
+    </script>
 </body>
 </html>

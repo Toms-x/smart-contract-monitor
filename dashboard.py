@@ -1,32 +1,28 @@
-from flask import Flask, render_template
+# dashboard.py
+
+from flask import Flask, render_template, request
+from flask_cors import CORS 
 import json
 import sqlite3
 from collections import Counter
 
+# Import the blueprint from api.py file
+from api import api_bp 
+
 app = Flask(__name__)
 
-DB_PATH = "events.db"
+# This line enables CORS for the entire Flask application, allowing
+# frontend dashboard to make API requests to this server.
+CORS(app)
 
-def get_events():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT event_data FROM events ORDER BY id DESC LIMIT 100")
-    rows = c.fetchall()
-    conn.close()
-    events = [json.loads(row[0]) for row in rows]
-    return events
+# Register the blueprint. This makes /api/stats and other routes active.
+app.register_blueprint(api_bp)
 
-def get_chart_data(events):
-    block_counts = Counter([e.get("blockNumber") for e in events if e.get("blockNumber")])
-    labels = list(map(str, block_counts.keys()))
-    values = list(block_counts.values())
-    return labels, values
-
+# This is the original route for the old dashboard.
+# It now just serves the static HTML file for the new dashboard.
 @app.route("/")
 def index():
-    events = get_events()
-    labels, values = get_chart_data(events)
-    return render_template("index.html", events=events, labels=labels, values=values)
+    return render_template("index.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
