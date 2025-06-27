@@ -1,62 +1,28 @@
-from flask import Flask, render_template, request 
+# dashboard.py
+
+from flask import Flask, render_template, request
+from flask_cors import CORS 
 import json
 import sqlite3
 from collections import Counter
 
+# Import the blueprint from api.py file
+from api import api_bp 
+
 app = Flask(__name__)
 
-DB_PATH = "events.db"
+# This line enables CORS for the entire Flask application, allowing
+# frontend dashboard to make API requests to this server.
+CORS(app)
 
-def get_events():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT event_data FROM events ORDER BY id DESC LIMIT 100")
-    rows = c.fetchall()
-    conn.close()
-    events = [json.loads(row[0]) for row in rows]
-    return events
+# Register the blueprint. This makes /api/stats and other routes active.
+app.register_blueprint(api_bp)
 
-def get_chart_data(events):
-    block_counts = Counter([e.get("blockNumber") for e in events if e.get("blockNumber")])
-    labels = list(map(str, block_counts.keys()))
-    values = list(block_counts.values())
-    return labels, values
-
-def get_total_event_count():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT COUNT(*) FROM events")
-    total = c.fetchone()[0]
-    conn.close()
-    return total
-
+# This is the original route for the old dashboard.
+# It now just serves the static HTML file for the new dashboard.
 @app.route("/")
 def index():
-    page = request.args.get("page", default=1, type=int)
-    per_page = 20
-    offset = (page - 1) * per_page
-
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT event_data FROM events ORDER BY id DESC LIMIT ? OFFSET ?", (per_page, offset))
-    rows = c.fetchall()
-    conn.close()
-
-    events = [json.loads(row[0]) for row in rows]
-    labels, values = get_chart_data(events)
-
-    # total event count for frontend pagination controls
-    total = get_total_event_count()
-    total_pages = (total + per_page - 1) // per_page
-
-    return render_template(
-        "index.html",
-        events=events,
-        labels=labels,
-        values=values,
-        page=page,
-        total_pages=total_pages,
-    )
+    return render_template("index.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
