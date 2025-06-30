@@ -59,10 +59,6 @@
                             <button id="apply-filters-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition duration-150 ease-in-out shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                                 Apply Filters
                             </button>
-                            <!-- NEW "Clear Filters" button -->
-                            <button id="clear-filters-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2.5 px-4 rounded-lg transition duration-150 ease-in-out shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50">
-                                Clear Filters
-                            </button>
                         </div>
                     </div>
                 </aside>
@@ -139,12 +135,6 @@
             </div>
         </footer>
     </div>
-    
-    <!-- Toast Notification element -->
-    <div id="toast-notification" class="hidden fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg transition-opacity duration-300 z-50">
-        <p id="toast-message"></p>
-    </div>
-
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -166,7 +156,6 @@
             const fromAddressInput = document.getElementById('wallet-from');
             const toAddressInput = document.getElementById('wallet-to');
             const applyFiltersBtn = document.getElementById('apply-filters-btn');
-            const clearFiltersBtn = document.getElementById('clear-filters-btn');
             const askAiInput = document.getElementById('ask-ai-input');
             const askAiBtn = document.getElementById('ask-ai-btn');
             const aiResponseTitle = document.getElementById('ai-response-title');
@@ -179,35 +168,23 @@
             function formatNumber(n, style='d'){return typeof n!=='number'?'N/A':style==='c'?'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toLocaleString('en-US')}
             function truncateAddress(a){return!a||a.length<12?a:`${a.substring(0,6)}...${a.substring(a.length-4)}`}
 
-            // NEW: Function to show a temporary notification
-            function showToast(message, type = 'error') {
-                const toastMessage = document.getElementById('toast-message');
-                const toastNotification = document.getElementById('toast-notification');
-                toastMessage.textContent = message;
-
-                // Change color based on type
-                toastNotification.classList.remove('bg-red-500', 'bg-green-500');
-                if (type === 'success') {
-                    toastNotification.classList.add('bg-green-500');
-                } else {
-                    toastNotification.classList.add('bg-red-500');
-                }
-                
-                toastNotification.classList.remove('hidden');
-                setTimeout(() => {
-                    toastNotification.classList.add('hidden');
-                }, 3000); // Hide after 3 seconds
+            async function fetchAndUpdateStats() {
+                const selectedToken = tokenDropdown.value;
+                volumeLabelEl.textContent = `${selectedToken} Volume (24h)`;
+                try {
+                    const response = await fetch(`${API_BASE_URL}/stats?token=${selectedToken}`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    totalTransactionsEl.textContent = formatNumber(data.total_transactions_24h);
+                    usdcVolumeEl.textContent = formatNumber(data.total_volume_24h, 'currency');
+                    latestBlockEl.textContent = formatNumber(data.latest_block);
+                } catch (error) { console.error("Failed to fetch stats:", error); }
             }
 
-            async function fetchAndUpdateStats() { /* Unchanged from previous version */ }
-
             async function fetchAndRenderEvents(page = 1) {
-                // Only show loading spinner on initial load or filter change, not pagination
-                if(page === 1) {
-                    tableLoadingState.classList.remove('hidden');
-                    tableContainer.classList.add('hidden');
-                    paginationControls.classList.add('hidden');
-                }
+                tableLoadingState.classList.remove('hidden');
+                tableContainer.classList.add('hidden');
+                paginationControls.classList.add('hidden');
                 
                 const params = new URLSearchParams({ page: page, limit: 10, ...currentFilters });
                 try {
@@ -215,19 +192,7 @@
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     const data = await response.json();
                     
-                    // UX IMPROVEMENT: Check if this was a filtered search that returned nothing
-                    const isFilteredSearch = currentFilters.from_address || currentFilters.to_address;
-                    if (data.events.length === 0 && isFilteredSearch) {
-                        showToast("No events found for your filter.");
-                        // Important: We do NOT clear the table, so the user doesn't lose context.
-                        // We still need to hide the loader and show the existing table.
-                        tableLoadingState.classList.add('hidden');
-                        tableContainer.classList.remove('hidden');
-                        paginationControls.classList.remove('hidden');
-                        return; // Stop further processing
-                    }
-
-                    tableBody.innerHTML = ''; // Clear table only if we have new data
+                    tableBody.innerHTML = '';
                     if (data.events.length === 0) {
                         tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-400">No events found.</td></tr>`;
                     } else {
@@ -263,8 +228,63 @@
                 }
             }
 
-            async function fetchAndRenderChart() { /* Unchanged */ }
-            async function handleAiQuery() { /* Unchanged */ }
+            async function fetchAndRenderChart() {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/analytics/volume-by-block`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const chartData = await response.json();
+                    
+                    const ctx = document.getElementById('volumeChart').getContext('2d');
+                    if (volumeChart) volumeChart.destroy();
+                    
+                    volumeChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: { labels: chartData.labels, datasets: [{ label: 'Total Volume', data: chartData.data, backgroundColor: 'rgba(59, 130, 246, 0.5)', borderColor: 'rgba(59, 130, 246, 1)', borderWidth: 1, borderRadius: 4 }] },
+                        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(156, 163, 175, 0.2)' } }, x: { ticks: { color: '#9ca3af' }, grid: { display: false } } }, plugins: { legend: { display: false } } }
+                    });
+                } catch (error) { console.error('Failed to render chart:', error); }
+            }
+
+            async function handleAiQuery() {
+                const query = askAiInput.value.trim();
+                if (!query) return;
+
+                aiResponseTitle.textContent = "Thinking...";
+                aiResponseContent.innerHTML = '<div class="flex items-center justify-center p-4"><svg class="animate-spin h-5 w-5 neon-blue-text" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>';
+                
+                try {
+                    const response = await fetch(`${API_BASE_URL}/ai-query`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query: query })
+                    });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    
+                    aiResponseTitle.textContent = data.title;
+                    aiResponseContent.innerHTML = '';
+
+                    if (data.results && data.results.length > 0) {
+                        data.results.forEach(item => {
+                            let contentHtml = '';
+                            if (item.error) {
+                                contentHtml = `<p class="text-yellow-400">${item.error}</p>`;
+                            } else if (item.tx_count) {
+                                contentHtml = `<div class="p-2 bg-gray-900/50 rounded-md mb-2"><strong>Address:</strong> <span class="neon-blue-text">${truncateAddress(item.to_address)}</span><br><strong>Received:</strong> ${item.tx_count} times</div>`;
+                            } else {
+                                contentHtml = `<div class="p-2 bg-gray-900/50 rounded-md mb-2"><strong>From:</strong> ${truncateAddress(item.from_address)}<br><strong>To:</strong> ${truncateAddress(item.to_address)}<br><strong>Value:</strong> <span class="font-bold neon-green-text">${formatNumber(item.value)} ${item.tokenSymbol}</span></div>`;
+                            }
+                            aiResponseContent.innerHTML += contentHtml;
+                        });
+                    } else {
+                        aiResponseContent.innerHTML = '<p class="text-gray-400">No results found for your query.</p>';
+                    }
+                } catch (error) {
+                    console.error('AI Query failed:', error);
+                    aiResponseTitle.textContent = "Error";
+                    aiResponseContent.innerHTML = '<p class="text-red-400">Could not process the request.</p>';
+                }
+            }
 
             // --- Event Listeners ---
             tokenDropdown.addEventListener('change', fetchAndUpdateStats);
@@ -279,18 +299,10 @@
                 };
                 fetchAndRenderEvents(1);
             });
-            // NEW: Event listener for the clear filters button
-            clearFiltersBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                fromAddressInput.value = '';
-                toAddressInput.value = '';
-                currentFilters = {};
-                fetchAndRenderEvents(1);
-                showToast("Filters cleared", 'success');
-            });
             askAiBtn.addEventListener('click', handleAiQuery);
             askAiInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleAiQuery(); });
             
+            // --- Initial Load ---
             function initialLoad() {
                 fetchAndUpdateStats(); 
                 fetchAndRenderEvents(1); 
