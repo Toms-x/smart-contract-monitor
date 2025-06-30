@@ -1,32 +1,19 @@
 from flask import Flask, render_template
-import json
-import sqlite3
-from collections import Counter
+from flask_cors import CORS
+from api import api_bp
 
 app = Flask(__name__)
 
-DB_PATH = "events.db"
+# solution to the "Failed to fetch" error.
+CORS(app)
 
-def get_events():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT event_data FROM events ORDER BY id DESC LIMIT 100")
-    rows = c.fetchall()
-    conn.close()
-    events = [json.loads(row[0]) for row in rows]
-    return events
+# Register all the API routes from api.py
+app.register_blueprint(api_bp)
 
-def get_chart_data(events):
-    block_counts = Counter([e.get("blockNumber") for e in events if e.get("blockNumber")])
-    labels = list(map(str, block_counts.keys()))
-    values = list(block_counts.values())
-    return labels, values
-
+# This route just serves the main HTML page.
 @app.route("/")
 def index():
-    events = get_events()
-    labels, values = get_chart_data(events)
-    return render_template("index.html", events=events, labels=labels, values=values)
+    return render_template("index.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
