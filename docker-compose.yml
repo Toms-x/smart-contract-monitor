@@ -1,0 +1,26 @@
+services:
+  # The Flask Web Server service
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "5001:5000"
+    volumes:
+      # Mount the local .env file into the container
+      - ./.env:/app/.env
+      # Mount the database file to persist data
+      - ./events.db:/app/events.db
+    restart: always
+
+  # The Python Listener service
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    volumes:
+      # The worker also needs access to the .env file and the database
+      - ./.env:/app/.env
+      - ./events.db:/app/events.db
+    restart: always
+

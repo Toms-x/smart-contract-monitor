@@ -125,11 +125,11 @@
         <footer class="glassmorphism border-t border-gray-700/50 mt-auto">
             <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-5 text-gray-400 text-sm">
                 <div class="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
-                    <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="hover:neon-blue-text transition-colors duration-150 flex items-center">
+                    <a href="https://github.com/Toms-x/smart-contract-monitor" target="_blank" rel="noopener noreferrer" class="hover:neon-blue-text transition-colors duration-150 flex items-center">
                         <svg class="w-5 h-5 mr-1.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.342-3.369-1.342-.454-1.157-1.11-1.465-1.11-1.465-.908-.62.069-.608.069-.608 1.003.074 1.532 1.029 1.532 1.029.891 1.529 2.341 1.089 2.91.833.091-.647.349-1.086.635-1.337-2.22-.252-4.555-1.112-4.555-4.943 0-1.091.39-1.984 1.029-2.682-.103-.253-.446-1.27.098-2.645 0 0 .84-.269 2.75 1.025A9.548 9.548 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.748-1.025 2.748-1.025.546 1.375.201 2.392.098 2.645.64.698 1.028 1.591 1.028 2.682 0 3.841-2.337 4.687-4.565 4.935.358.307.679.917.679 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.577.688.481A10.007 10.007 0 0022 11.999C22 6.477 17.522 2 12 2z" clip-rule="evenodd"></path></svg>
                         GitHub
                     </a>
-                    <span class="text-center">Built by YourName/AI</span>
+                    <span class="text-center">Built by tomintech</span>
                     <div class="flex items-center">System Status: <span id="system-status-dot" class="h-2.5 w-2.5 bg-green-500 rounded-full ml-2 inline-block" title="All systems operational"></span></div>
                 </div>
             </div>
@@ -138,7 +138,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const API_BASE_URL = 'http://127.0.0.1:5000/api';
+            const API_BASE_URL = 'http://127.0.0.1:5001/api';
             const REFRESH_INTERVAL = 20000;
 
             const totalTransactionsEl = document.getElementById('total-transactions');
