@@ -8,9 +8,9 @@ from datetime import datetime
 from web3 import Web3
 from dotenv import load_dotenv
 
-# --- FIX FOR ModuleNotFoundError ---
+# This block adds the parent directory (smart-contract-monitor) to the Python path.
+# This allows the script to find the 'utils' folder no matter how it's run.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-# -----------------------------------
 
 from utils.db import init_db, save_event
 from utils.notifier import send_slack_alert
@@ -22,7 +22,7 @@ INFURA_URL = os.getenv("INFURA_URL")
 CONTRACT_ADDRESS = Web3.to_checksum_address(os.getenv("CONTRACT_ADDRESS"))
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-# --- Configuration ---
+# Configuration
 TOKEN_SYMBOL_MONITORED = "USDC"
 TOKEN_DECIMALS = 6
 
@@ -72,8 +72,8 @@ def main():
 
     while True:
         try:
-            # --- 1. Establish Connection and Create Filter ---
-            # This is now inside the loop, so it reconnects if something goes wrong.
+            #  1. Establish Connection and Create Filter
+            # now reconnects if something goes wrong.
             print("Connecting to Ethereum node...")
             w3 = Web3(Web3.HTTPProvider(INFURA_URL))
             if not w3.is_connected():
@@ -85,14 +85,14 @@ def main():
             event_filter = contract.events.Transfer.create_filter(from_block='latest')
             print("Event listener started. Polling for new events...")
 
-            # --- 2. Poll for Events in a nested loop ---
+            # 2. Poll for Events in a nested loop
             while True:
                 for event in event_filter.get_new_entries():
                     handle_event(event, w3)
                 time.sleep(5) # poll every 5 seconds
 
         except Exception as e:
-            # --- 3. Handle Errors and Restart the Loop ---
+            # 3. Handle Errors and Restart the Loop
             # This block will catch the "filter not found" error and any other connection issue.
             print(f"An error occurred: {e}")
             print("Restarting listener in 15 seconds...")

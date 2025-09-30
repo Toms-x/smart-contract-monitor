@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# utils/db.py
 
 import sqlite3
 
@@ -81,4 +81,3 @@ def save_event(event_data):
         print(f"Error saving event to database: {e}")
     finally:
         conn.close()
-

@@ -1,0 +1,16 @@
+# using the same base Python image for consistency
+FROM python:3.11-slim
+
+# set the working directory
+WORKDIR /app
+
+# copy and install dependencies, leveraging the cache
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# copy the rest of the application code
+COPY . .
+
+# command to run when the container starts
+CMD ["python", "monitor/listener.py"]
+

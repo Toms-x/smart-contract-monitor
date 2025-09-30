@@ -4,9 +4,11 @@
 import sqlite3
 import datetime
 import math
+import os
+from openai import OpenAI
 from flask import Blueprint, jsonify, request
 
-# A Blueprint is a way to organize a group of related views and other code.
+# A Blueprint helps organize a group of related views and other code.
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 DATABASE_FILE = 'events.db'
@@ -19,32 +21,56 @@ def get_db_connection():
 
 @api_bp.route('/stats', methods=['GET'])
 def get_stats():
-    # This function is unchanged
+    """
+    API endpoint to fetch the overview statistics.
+    WITH DETAILED LOGGING FOR DEBUGGING.
+    """
+    print("\n--- [DEBUG] /api/stats endpoint called ---")
     try:
         token_symbol = request.args.get('token', 'USDC')
+        print(f"[DEBUG] Token symbol: {token_symbol}")
+        
+        print("[DEBUG] Connecting to database...")
         conn = get_db_connection()
         cursor = conn.cursor()
+        print("[DEBUG] Database connection successful.")
+
+        print("[DEBUG] Querying for latest block...")
         latest_block_query = "SELECT MAX(blockNumber) as latest_block FROM events"
         cursor.execute(latest_block_query)
         latest_block = cursor.fetchone()['latest_block'] or 0
+        print(f"[DEBUG] Latest block found: {latest_block}")
+
         twenty_four_hours_ago = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
+        
+        print("[DEBUG] Querying for 24h transaction count...")
         tx_count_query = "SELECT COUNT(*) as count FROM events WHERE timestamp >= ?"
         cursor.execute(tx_count_query, (twenty_four_hours_ago,))
         total_transactions_24h = cursor.fetchone()['count'] or 0
+        print(f"[DEBUG] 24h transaction count: {total_transactions_24h}")
+
+        print(f"[DEBUG] Querying for 24h volume for {token_symbol}...")
         volume_query = "SELECT SUM(value) as total_volume FROM events WHERE timestamp >= ? AND tokenSymbol = ?"
         cursor.execute(volume_query, (twenty_four_hours_ago, token_symbol))
         total_volume_24h = cursor.fetchone()['total_volume'] or 0
+        print(f"[DEBUG] 24h volume: {total_volume_24h}")
+
         conn.close()
+        print("[DEBUG] Database connection closed.")
+
         stats_data = {"total_transactions_24h": total_transactions_24h, "total_volume_24h": total_volume_24h, "latest_block": latest_block, "token_symbol": token_symbol}
+        
+        print("[DEBUG] Successfully prepared JSON response. Sending to browser.")
         return jsonify(stats_data)
+        
     except Exception as e:
-        print(f"Error in /stats: {e}")
-        return jsonify({"error": "A database error occurred"}), 500
+        # This will now print the exact error to your terminal
+        print(f"\n--- [ERROR] An error occurred in /api/stats: {e} ---\n")
+        return jsonify({"error": "A server error occurred"}), 500
 
 
 @api_bp.route('/events', methods=['GET'])
 def get_events():
-    # This function is unchanged
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('limit', 10, type=int)
@@ -86,7 +112,6 @@ def get_events():
 
 @api_bp.route('/analytics/volume-by-block', methods=['GET'])
 def get_volume_by_block():
-    # This function is unchanged
     try:
         limit = 50 
         conn = get_db_connection()
@@ -110,49 +135,66 @@ def get_volume_by_block():
 @api_bp.route('/ai-query', methods=['POST'])
 def handle_ai_query():
     """
-    Handles simple, keyword-based "AI" queries.
-    This is a simplified version to demonstrate the concept.
+    Handles natural language queries by sending them to OpenAI's API
+    to generate an SQL query, then executes it.
     """
+    # 1. Configure the OpenAI client
     try:
-        query_text = request.json.get('query', '').lower()
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    except Exception as e:
+        print(f"Error configuring OpenAI client: {e}")
+        return jsonify({"error": "OpenAI client could not be configured. Check your API key."}), 500
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
+    query_text = request.json.get('query', '').lower()
+    if not query_text:
+        return jsonify({"error": "Query cannot be empty."}), 400
+
+    # 2. Define the system prompt for the AI
+    # This is the most important part. It tells the AI its role and constraints.
+    system_prompt = f"""
+    You are an expert SQLite database assistant. A user will ask you a question in plain English.
+    Your only job is to convert that question into a single, valid SQLite query for a table named 'events'.
+    The table 'events' has the following columns: id, tx_hash, blockNumber, timestamp, from_address, to_address, value, tokenSymbol.
+    - The 'value' column is a number representing the transaction amount.
+    - The 'timestamp' is a string in 'YYYY-MM-DD HH:MM:SS' format.
+    - ONLY output the SQL query. Do not include any other text, explanation, or markdown formatting.
+    - IMPORTANT: For security, only generate SELECT statements. If the user asks to modify, delete, or drop data, respond with "SELECT 'Error: Your query was denied for security reasons.';".
+    """
+
+    try:
+        # 3. Call the OpenAI API
+        print(f"Sending query to OpenAI: {query_text}")
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": query_text}
+            ],
+            temperature=0,
+            max_tokens=150
+        )
         
-        response_title = "AI Insight"
-        sql_query = ""
-        
-        # Keyword-based routing for the query
-        if 'whale' in query_text or 'largest' in query_text or 'biggest' in query_text:
-            response_title = "Top 5 Largest Transfers"
-            sql_query = "SELECT * FROM events ORDER BY value DESC LIMIT 5"
-        elif 'latest' in query_text or 'newest' in query_text:
-            response_title = "5 Most Recent Transfers"
-            sql_query = "SELECT * FROM events ORDER BY blockNumber DESC, id DESC LIMIT 5"
-        elif 'consolidation' in query_text:
-            response_title = "Potential Consolidation Addresses"
-            # This query finds addresses that have received funds more than 5 times
-            sql_query = """
-                SELECT to_address, COUNT(*) as tx_count 
-                FROM events 
-                GROUP BY to_address 
-                HAVING tx_count > 5 
-                ORDER BY tx_count DESC 
-                LIMIT 5
-            """
-        else:
-            return jsonify({
-                "title": "Query Not Understood",
-                "results": [{"error": "Sorry, I can only understand queries about 'largest', 'latest', or 'consolidation' transfers for now."}]
+        # 4. Extract the SQL query from the AI's response
+        sql_query = response.choices[0].message.content.strip()
+        print(f"Received SQL from OpenAI: {sql_query}")
+
+        # 5. A crucial security check
+        if not sql_query.lower().startswith('select'):
+             return jsonify({
+                "title": "Query Denied",
+                "results": [{"error": "This query was denied for security reasons."}]
             })
 
+        # 6. Execute the generated SQL query
+        conn = get_db_connection()
+        cursor = conn.cursor()
         cursor.execute(sql_query)
         rows = cursor.fetchall()
         conn.close()
 
         results = [dict(row) for row in rows]
-
-        return jsonify({"title": response_title, "results": results})
+        
+        return jsonify({"title": f"Results for: '{query_text}'", "results": results})
 
     except Exception as e:
         print(f"Error in /ai-query: {e}")
