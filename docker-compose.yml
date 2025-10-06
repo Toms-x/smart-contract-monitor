@@ -4,6 +4,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
+    image: us-central1-docker.pkg.dev/tomiwa-contract-monitor/my-docker-repo/dashboard-web:v3
+    platform: linux/amd64
     ports:
       - "5001:5000"
     volumes:
@@ -18,9 +20,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.worker
+    image: us-central1-docker.pkg.dev/tomiwa-contract-monitor/my-docker-repo/dashboard-worker:v3
+    platform: linux/amd64
     volumes:
-      # The worker also needs access to the .env file and the database
       - ./.env:/app/.env
       - ./events.db:/app/events.db
     restart: always
-

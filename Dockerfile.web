@@ -5,7 +5,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # leveraging Docker's layer caching
-COPY requirements.txt requirements.txt
+COPY requirements.txt .
 
 # install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -14,8 +14,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # expose the port the app runs on
-EXPOSE 5000
+# use an ENV variable that Cloud Run provides.
+ENV PORT 8080
+EXPOSE 8080
 
-# Use Gunicorn, a production-ready web server, to run the app
-# It will run the 'app' object from the 'dashboard.py' file
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "dashboard:app"]
+# use Gunicorn, a production-ready web server, to run the app
+# it will run the 'app' object from the 'dashboard.py' file
+CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 0 dashboard:app
